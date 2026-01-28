@@ -20,18 +20,11 @@ $message_type = '';
 if ($action === 'delete_user' && isset($_POST['user_id'])) {
     $delete_user_id = intval($_POST['user_id']);
     
-    // Prevent deleting the last admin
-    $admin_count_stmt = $conn->prepare("SELECT COUNT(*) as count FROM users WHERE is_admin = 1");
-    $admin_count_stmt->execute();
-    $admin_count_result = $admin_count_stmt->get_result();
-    $admin_count = $admin_count_result->fetch_assoc()['count'];
-    $admin_count_stmt->close();
-    
     if ($delete_user_id == $_SESSION['user_id']) {
         $message = "Cannot delete your own account";
         $message_type = 'error';
-    } elseif ($admin_count <= 1 && $delete_user_id != $_SESSION['user_id']) {
-        // Check if the user being deleted is an admin
+    } else {
+        // Check if user is an admin
         $check_stmt = $conn->prepare("SELECT is_admin FROM users WHERE id = ?");
         $check_stmt->bind_param("i", $delete_user_id);
         $check_stmt->execute();
@@ -39,21 +32,46 @@ if ($action === 'delete_user' && isset($_POST['user_id'])) {
         $user_to_delete = $check_result->fetch_assoc();
         $check_stmt->close();
         
-        if ($user_to_delete && $user_to_delete['is_admin']) {
-            $message = "Cannot delete the last admin account";
+        if (!$user_to_delete) {
+            $message = "User not found";
             $message_type = 'error';
-        }
-    } else {
-        $delete_stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-        $delete_stmt->bind_param("i", $delete_user_id);
-        if ($delete_stmt->execute()) {
-            $message = "User deleted successfully";
-            $message_type = 'success';
+        } elseif ($user_to_delete['is_admin']) {
+            // Check if this is the last admin
+            $admin_count_stmt = $conn->prepare("SELECT COUNT(*) as count FROM users WHERE is_admin = 1");
+            $admin_count_stmt->execute();
+            $admin_count_result = $admin_count_stmt->get_result();
+            $admin_count = $admin_count_result->fetch_assoc()['count'];
+            $admin_count_stmt->close();
+            
+            if ($admin_count <= 1) {
+                $message = "Cannot delete the last admin account";
+                $message_type = 'error';
+            } else {
+                // Delete the admin user
+                $delete_stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+                $delete_stmt->bind_param("i", $delete_user_id);
+                if ($delete_stmt->execute()) {
+                    $message = "User deleted successfully";
+                    $message_type = 'success';
+                } else {
+                    $message = "Error deleting user";
+                    $message_type = 'error';
+                }
+                $delete_stmt->close();
+            }
         } else {
-            $message = "Error deleting user";
-            $message_type = 'error';
+            // Delete non-admin user
+            $delete_stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+            $delete_stmt->bind_param("i", $delete_user_id);
+            if ($delete_stmt->execute()) {
+                $message = "User deleted successfully";
+                $message_type = 'success';
+            } else {
+                $message = "Error deleting user";
+                $message_type = 'error';
+            }
+            $delete_stmt->close();
         }
-        $delete_stmt->close();
     }
 }
 
@@ -594,34 +612,34 @@ function formatDate($date) {
     <!-- Delete User Modal -->
     <div id="deleteUserModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Delete User</div>
-            <div class="modal-body">
-                Are you sure you want to delete user <strong id="deleteUsername"></strong>? This action cannot be undone.
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeDeleteUserModal()" class="btn-primary">Cancel</button>
-                <form id="deleteUserForm" method="POST" action="admin.php?action=delete_user" style="margin: 0;">
+            <form id="deleteUserForm" method="POST" action="admin.php?action=delete_user" style="margin: 0;">
+                <div class="modal-header">Delete User</div>
+                <div class="modal-body">
+                    Are you sure you want to delete user <strong id="deleteUsername"></strong>? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="closeDeleteUserModal()" class="btn-primary">Cancel</button>
                     <input type="hidden" name="user_id" id="deleteUserId">
                     <button type="submit" class="btn-danger">Delete</button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
     <!-- Delete File Modal -->
     <div id="deleteFileModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Delete File</div>
-            <div class="modal-body">
-                Are you sure you want to delete file <strong id="deleteFileName"></strong>? This action cannot be undone.
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeDeleteFileModal()" class="btn-primary">Cancel</button>
-                <form id="deleteFileForm" method="POST" action="admin.php?action=delete_file" style="margin: 0;">
+            <form id="deleteFileForm" method="POST" action="admin.php?action=delete_file" style="margin: 0;">
+                <div class="modal-header">Delete File</div>
+                <div class="modal-body">
+                    Are you sure you want to delete file <strong id="deleteFileName"></strong>? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="closeDeleteFileModal()" class="btn-primary">Cancel</button>
                     <input type="hidden" name="file_id" id="deleteFileId">
                     <button type="submit" class="btn-danger">Delete</button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
