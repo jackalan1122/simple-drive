@@ -27,4 +27,20 @@ if (!file_exists(UPLOAD_DIR)) {
 
 // Start session
 session_start();
+
+// Helper function to check if user is admin
+function isAdmin() {
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] == 1;
+}
+
+// Helper function to verify admin access and redirect if not authorized
+function requireAdmin() {
+    if (!isAdmin()) {
+        http_response_code(403);
+        die('Access denied. Admin privileges required.');
+    }
+}
 ?>

@@ -68,6 +68,19 @@ function formatFileSize($bytes) {
             align-items: center;
             gap: 20px;
         }
+        .admin-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+        .admin-btn:hover {
+            background: #ffc107;
+            color: #333;
+        }
         .logout-btn {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -268,6 +281,9 @@ function formatFileSize($bytes) {
         <h1>📦 Simple Drive</h1>
         <div class="user-info">
             <span>Welcome, <?php echo htmlspecialchars($username); ?>!</span>
+            <?php if (isAdmin()): ?>
+                <a href="admin.php" class="admin-btn">⚙️ Admin Panel</a>
+            <?php endif; ?>
             <a href="logout.php" class="logout-btn">Logout</a>
         </div>
     </div>
